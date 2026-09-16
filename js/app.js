@@ -58,6 +58,10 @@ class AppController {
 
   cacheDomElements() {
     this.dom = {
+      appHeader: document.getElementById('app-header'),
+      btnMenuToggle: document.getElementById('btn-menu-toggle'),
+      menuToggleIcon: document.getElementById('menu-toggle-icon'),
+      navMenu: document.getElementById('nav-menu'),
       btnAudioToggle: document.getElementById('btn-audio-toggle'),
       btnThemeToggle: document.getElementById('btn-theme-toggle'),
       btnRoomToggle: document.getElementById('btn-room-toggle'),
@@ -543,7 +547,60 @@ class AppController {
     }
   }
 
+  toggleMobileMenu() {
+    const isOpen = this.dom.navMenu.classList.contains('open');
+    if (isOpen) {
+      this.closeMobileMenu();
+    } else {
+      this.openMobileMenu();
+    }
+    sound.playKeyTick();
+  }
+
+  openMobileMenu() {
+    this.dom.navMenu.classList.add('open');
+    this.dom.btnMenuToggle.setAttribute('aria-expanded', 'true');
+    this.dom.menuToggleIcon.textContent = '✕';
+  }
+
+  closeMobileMenu() {
+    if (this.dom.navMenu && this.dom.navMenu.classList.contains('open')) {
+      this.dom.navMenu.classList.remove('open');
+      this.dom.btnMenuToggle.setAttribute('aria-expanded', 'false');
+      this.dom.menuToggleIcon.textContent = '☰';
+    }
+  }
+
   bindEvents() {
+    // Toggle do Menu Mobile
+    this.dom.btnMenuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleMobileMenu();
+    });
+
+    // Fecha o menu mobile automaticamente ao clicar em qualquer uma de suas opções
+    const menuActionButtons = [
+      this.dom.btnThemeToggle,
+      this.dom.btnRoomToggle,
+      this.dom.btnChallengeToggle,
+      this.dom.btnAiToggle,
+      this.dom.btnStatsToggle
+    ];
+    menuActionButtons.forEach(btn => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          this.closeMobileMenu();
+        });
+      }
+    });
+
+    // Fecha o menu mobile ao clicar fora do cabeçalho
+    document.addEventListener('click', (e) => {
+      if (this.dom.appHeader && !this.dom.appHeader.contains(e.target)) {
+        this.closeMobileMenu();
+      }
+    });
+
     // Alternar Som
     this.dom.btnAudioToggle.addEventListener('click', () => {
       const isMuted = sound.toggleMute();
@@ -886,6 +943,7 @@ class AppController {
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        this.closeMobileMenu();
         document.querySelectorAll('.modal-backdrop.active').forEach(modal => {
           this.closeModal(modal);
         });

@@ -20,8 +20,8 @@
 </head>
 <body>
 
-  <!-- BARRA DE NAVEGAÇÃO SUPERIOR RESPONSIVA -->
-  <header class="app-header">
+  <!-- BARRA DE NAVEGAÇÃO SUPERIOR COM TOGGLE MOBILE -->
+  <header class="app-header" id="app-header">
     <div class="brand">
       <span class="brand-icon">🪓</span>
       <div>
@@ -30,17 +30,42 @@
       </div>
     </div>
     
-    <nav class="nav-actions" aria-label="Ações do Sistema">
+    <div class="header-controls">
+      <!-- Botões de Acesso Imediato -->
       <button id="btn-audio-toggle" class="icon-btn" aria-label="Alternar Som" title="Som (Ligado/Desligado)">🔊</button>
-      <button id="btn-theme-toggle" class="icon-btn" aria-label="Mudar Tema Visual" title="Trocar Tema">🎨</button>
-      <button id="btn-room-toggle" class="icon-btn" aria-label="Jogar em Grupo" title="Salas Multiplayer">👥</button>
       <button id="btn-auth-toggle" class="icon-btn auth-btn" aria-label="Minha Conta Google" title="Conta Google">
         <span id="auth-btn-icon">G</span>
       </button>
-      <button id="btn-challenge-toggle" class="icon-btn" aria-label="Inserir Palavra ou Desafiar" title="Palavra Própria">✍️</button>
-      <button id="btn-ai-toggle" class="icon-btn" aria-label="Desafio com IA" title="Gerar com IA">🤖</button>
-      <button id="btn-stats-toggle" class="icon-btn" aria-label="Ver Estatísticas" title="Estatísticas">🏆</button>
-    </nav>
+
+      <!-- Botão Toggle do Menu (Mobile) -->
+      <button id="btn-menu-toggle" class="icon-btn menu-toggle-btn" aria-label="Abrir Menu de Opções" aria-expanded="false" aria-controls="nav-menu">
+        <span id="menu-toggle-icon">☰</span>
+      </button>
+
+      <!-- Menu de Ações (Barra no Desktop / Dropdown Retrátil no Mobile) -->
+      <nav class="nav-actions" id="nav-menu" aria-label="Ações do Sistema">
+        <button id="btn-theme-toggle" class="menu-action-btn" aria-label="Mudar Tema Visual" title="Trocar Tema">
+          <span class="action-icon">🎨</span>
+          <span class="action-label">Tema Visual</span>
+        </button>
+        <button id="btn-room-toggle" class="menu-action-btn" aria-label="Jogar em Grupo" title="Salas Multiplayer">
+          <span class="action-icon">👥</span>
+          <span class="action-label">Jogar em Grupo</span>
+        </button>
+        <button id="btn-challenge-toggle" class="menu-action-btn" aria-label="Inserir Palavra ou Desafiar" title="Palavra Própria">
+          <span class="action-icon">✍️</span>
+          <span class="action-label">Palavra Própria</span>
+        </button>
+        <button id="btn-ai-toggle" class="menu-action-btn" aria-label="Desafio com IA" title="Gerar com IA">
+          <span class="action-icon">🤖</span>
+          <span class="action-label">Desafio com IA</span>
+        </button>
+        <button id="btn-stats-toggle" class="menu-action-btn" aria-label="Ver Estatísticas" title="Estatísticas">
+          <span class="action-icon">🏆</span>
+          <span class="action-label">Estatísticas</span>
+        </button>
+      </nav>
+    </div>
   </header>
 
   <!-- BANNER DE SALA MULTIPLAYER ATIVA (TEMPO REAL) -->
