@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="nintendo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>ForcaMaster Pro - Jogo da Forca Offline & Desafios</title>
+  
+  <!-- SEO & PWA Metadados -->
+  <meta name="description" content="O clássico Jogo da Forca com suporte a acentos, áudio sintetizado nativo, 100% offline, gerador por IA e desafios compartilháveis por link e QR Code.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="shortcut icon" href="assets/icons/icon-192x192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+  <meta name="theme-color" content="#f4f4f7">
+
+  <!-- Fontes & Folhas de Estilo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- BARRA DE NAVEGAÇÃO SUPERIOR -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-icon">🪓</span>
+      <div>
+        <h1 class="brand-title">ForcaMaster</h1>
+        <span class="brand-subtitle">Pro Edition</span>
+      </div>
+    </div>
+    
+    <nav class="nav-actions" aria-label="Ações do Sistema">
+      <button id="btn-audio-toggle" class="icon-btn" aria-label="Alternar Som" title="Som (Ligado/Desligado)">🔊</button>
+      <button id="btn-theme-toggle" class="icon-btn" aria-label="Mudar Tema Visual" title="Trocar Tema">🎨</button>
+      <button id="btn-challenge-toggle" class="icon-btn" aria-label="Inserir Palavra ou Desafiar" title="Inserir Palavra / Desafio">✍️</button>
+      <button id="btn-ai-toggle" class="icon-btn" aria-label="Desafio com IA" title="Gerar com Gemini IA">🤖</button>
+      <button id="btn-stats-toggle" class="icon-btn" aria-label="Ver Estatísticas" title="Estatísticas e Perfil">🏆</button>
+    </nav>
+  </header>
+
+  <!-- BARRA DE METADADOS DA PARTIDA -->
+  <div class="game-meta-bar">
+    <div class="meta-tags">
+      <span id="badge-category" class="badge category">Categoria: Animais</span>
+      <span id="badge-difficulty" class="badge">Fácil</span>
+      <span id="badge-mode" class="badge">Modo: Solo</span>
+    </div>
+    <button id="btn-toggle-hint" class="hint-trigger-btn" aria-label="Ver ou ocultar dica da palavra">
+      💡 <span id="hint-btn-text">Ver Dica</span>
+    </button>
+  </div>
+
+  <!-- BANNER DE DICA CONTEXTUAL -->
+  <aside id="hint-banner" class="hint-banner" aria-live="polite">
+    <strong>Dica:</strong> <span id="hint-text">...</span>
+  </aside>
+
+  <!-- TABULEIRO PRINCIPAL DO JOGO -->
+  <main class="game-board">
+    
+    <div class="game-arena">
+      <!-- FORCA GRÁFICA VETORIAL SVG -->
+      <div class="hangman-stage">
+        <svg class="hangman-svg" viewBox="0 0 200 250" role="img" id="hangman-graphic" aria-label="Ilustração da Forca: 0 de 6 erros">
+          <!-- Estrutura Estática de Madeira -->
+          <line x1="20" y1="230" x2="140" y2="230" class="figure-part base"/>
+          <line x1="60" y1="230" x2="60" y2="20" class="figure-part base"/>
+          <line x1="60" y1="20" x2="140" y2="20" class="figure-part base"/>
+          <line x1="140" y1="20" x2="140" y2="50" class="figure-part base"/>
+          <line x1="60" y1="60" x2="100" y2="20" class="figure-part base"/>
+          
+          <!-- Partes do Corpo (Reveladas Progressivamente) -->
+          <circle cx="140" cy="70" r="20" class="figure-part" id="part-head"/>
+          <line x1="140" y1="90" x2="140" y2="150" class="figure-part" id="part-body"/>
+          <line x1="140" y1="110" x2="105" y2="135" class="figure-part" id="part-left-arm"/>
+          <line x1="140" y1="110" x2="175" y2="135" class="figure-part" id="part-right-arm"/>
+          <line x1="140" y1="150" x2="110" y2="190" class="figure-part" id="part-left-leg"/>
+          <line x1="140" y1="150" x2="170" y2="190" class="figure-part" id="part-right-leg"/>
+        </svg>
+      </div>
+
+      <!-- SLOTS DAS LETRAS & CONTADOR DE VIDAS -->
+      <div class="word-status-area">
+        <div id="word-slots" class="word-slots" aria-live="polite" role="status"></div>
+
+        <div class="hearts-tracker">
+          <span class="hearts-label">Chances:</span>
+          <span id="hearts-display">❤️❤️❤️❤️❤️❤️</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TECLADO VIRTUAL ERGONÔMICO -->
+    <section class="keyboard-container" id="virtual-keyboard" aria-label="Teclado Virtual"></section>
+
+    <!-- BARRA DE AÇÕES INFERIORES -->
+    <footer class="action-bar">
+      <button id="btn-new-word" class="btn-primary">🎲 Nova Palavra</button>
+      <button id="btn-open-custom-word" class="btn-secondary">✍️ Palavra Própria</button>
+      <button id="btn-choose-category" class="btn-secondary">⚙️ Categorias</button>
+    </footer>
+  </main>
+
+  <!-- =======================================================================
+       MODAIS DE INTERAÇÃO & DIÁLOGOS
+       ======================================================================= -->
+
+  <!-- MODAL 1: FIM DE PARTIDA (VITÓRIA / DERROTA) -->
+  <div id="modal-endgame" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="endgame-title">
+    <div class="modal-card">
+      <h2 id="endgame-title" class="modal-title">🎉 Parabéns!</h2>
+      <p id="endgame-subtitle" class="modal-subtitle">Você desvendou o enigma a tempo.</p>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div id="endgame-word-reveal" class="stat-value" style="font-size: clamp(1rem, 3.5vw, 1.3rem); word-break: break-word;">PALAVRA</div>
+          <div class="stat-label">Palavra Secreta</div>
+        </div>
+        <div class="stat-box">
+          <div id="endgame-score" class="stat-value">0</div>
+          <div class="stat-label">Pontos da Partida</div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button id="btn-play-again" class="btn-primary">Jogar Novamente</button>
+        <button id="btn-close-endgame" class="btn-secondary">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ESTATÍSTICAS E PERFIL DETALHADO -->
+  <div id="modal-stats" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+    <div class="modal-card">
+      <button class="modal-close-btn" data-close="modal-stats" aria-label="Fechar">✕</button>
+      <h2 id="stats-title" class="modal-title">🏆 Seu Desempenho</h2>
+      <p class="modal-subtitle">Estatísticas sincronizadas e histórico pessoal de partidas.</p>
+
+      <div class="form-group">
+        <label for="input-profile-name">Seu Nome / Apelido</label>
+        <input type="text" id="input-profile-name" class="form-input" maxlength="16" placeholder="Digite seu apelido">
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div id="stat-total-games" class="stat-value">0</div>
+          <div class="stat-label">Partidas</div>
+        </div>
+        <div class="stat-box">
+          <div id="stat-win-rate" class="stat-value">0%</div>
+          <div class="stat-label">Taxa Vitória</div>
+        </div>
+        <div class="stat-box">
+          <div id="stat-current-streak" class="stat-value">0</div>
+          <div class="stat-label">Sequência Atual</div>
+        </div>
+        <div class="stat-box">
+          <div id="stat-best-streak" class="stat-value">0</div>
+          <div class="stat-label">Melhor Sequência</div>
+        </div>
+      </div>
+
+      <div class="action-bar" style="margin-top: 10px;">
+        <button id="btn-export-stats" class="btn-secondary" title="Baixar arquivo de backup">💾 Exportar JSON</button>
+        <button id="btn-import-stats" class="btn-secondary" title="Restaurar de arquivo">📥 Importar JSON</button>
+        <input type="file" id="file-import-stats" accept=".json" style="display: none;">
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: INSERIR PALAVRA / DESAFIAR (LOCAL OU LINK + QR CODE) -->
+  <div id="modal-challenge" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="challenge-title">
+    <div class="modal-card">
+      <button class="modal-close-btn" data-close="modal-challenge" aria-label="Fechar">✕</button>
+      <h2 id="challenge-title" class="modal-title">✍️ Inserir Palavra / Desafio</h2>
+      <p class="modal-subtitle">Digite qualquer palavra com acentos, hífens ou espaços para jogar agora ou compartilhar!</p>
+
+      <div class="form-group">
+        <label for="challenge-word-input">Palavra Secreta (Aceita Acentos e Hífens)</label>
+        <input type="text" id="challenge-word-input" class="form-input" placeholder="Ex: Pão de Açúcar, Água-Viva, Avião" maxlength="24" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="challenge-category-input">Categoria</label>
+        <input type="text" id="challenge-category-input" class="form-input" placeholder="Ex: Culinária, Geografia, Cinema" maxlength="20">
+      </div>
+
+      <div class="form-group">
+        <label for="challenge-hint-input">Dica Opcional</label>
+        <input type="text" id="challenge-hint-input" class="form-input" placeholder="Ex: Ponto turístico famoso do Rio de Janeiro" maxlength="80">
+      </div>
+
+      <div class="action-bar" style="flex-direction: column; gap: 10px; margin-bottom: 12px;">
+        <button id="btn-play-custom-local" class="btn-primary" style="width: 100%;">▶️ Jogar no Aparelho (2 Jogadores)</button>
+        <button id="btn-generate-challenge-link" class="btn-secondary" style="width: 100%;">🔗 Gerar Link e QR Code para Amigo</button>
+      </div>
+
+      <div id="challenge-output-box" style="display: none;">
+        <div class="form-group">
+          <label>Link Gerado</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="challenge-url-result" class="form-input" readonly>
+            <button id="btn-copy-challenge-url" class="btn-secondary" style="flex-shrink: 0;">Copiar</button>
+          </div>
+        </div>
+
+        <div class="qr-container">
+          <canvas id="challenge-qr-canvas" class="qr-canvas"></canvas>
+          <span style="font-size: 0.78rem; color: var(--color-text-muted);">Aponte a câmera para jogar direto</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: GERADOR DE DESAFIOS VIA IA GEMINI -->
+  <div id="modal-ai" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ai-title">
+    <div class="modal-card">
+      <button class="modal-close-btn" data-close="modal-ai" aria-label="Fechar">✕</button>
+      <h2 id="ai-title" class="modal-title">🤖 Gerador Inteligente (Gemini IA)</h2>
+      <p class="modal-subtitle">Crie desafios personalizados infinitos baseados em qualquer tema do seu interesse.</p>
+
+      <div class="form-group">
+        <label for="ai-theme-input">Qual é o tema desejado?</label>
+        <input type="text" id="ai-theme-input" class="form-input" placeholder="Ex: Harry Potter, Filosofia Grega, Carros Clássicos">
+      </div>
+
+      <div class="form-group">
+        <label for="ai-difficulty-select">Nível de Dificuldade</label>
+        <select id="ai-difficulty-select" class="form-select">
+          <option value="facil">Fácil</option>
+          <option value="medio" selected>Médio</option>
+          <option value="dificil">Difícil</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="ai-api-key-input">Chave de API do Google Gemini (BYOK)</label>
+        <input type="password" id="ai-api-key-input" class="form-input" placeholder="Insira sua API Key do Google AI Studio">
+        <span style="font-size: 0.72rem; color: var(--color-text-muted); margin-top: 4px;">Sua chave fica salva apenas no seu navegador.</span>
+      </div>
+
+      <p id="ai-status-message" style="font-size: 0.82rem; color: var(--color-primary); min-height: 18px; margin-bottom: 12px;"></p>
+
+      <button id="btn-generate-ai-word" class="btn-primary" style="width: 100%;">⚡ Gerar e Jogar Agora</button>
+    </div>
+  </div>
+
+  <!-- MODAL 5: SELETOR DE CATEGORIA E DIFICULDADE -->
+  <div id="modal-category" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cat-title">
+    <div class="modal-card">
+      <button class="modal-close-btn" data-close="modal-category" aria-label="Fechar">✕</button>
+      <h2 id="cat-title" class="modal-title">⚙️ Opções de Jogo</h2>
+      <p class="modal-subtitle">Filtre as palavras conforme o seu nível de desafio.</p>
+
+      <div class="form-group">
+        <label for="select-game-difficulty">Dificuldade</label>
+        <select id="select-game-difficulty" class="form-select">
+          <option value="todos">Misto (Todas as dificuldades)</option>
+          <option value="facil">Fácil (Palavras comuns de 4 a 6 letras)</option>
+          <option value="medio" selected>Médio (Vocabulário variado)</option>
+          <option value="dificil">Difícil (Termos longos e complexos)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="select-game-category">Categoria</label>
+        <select id="select-game-category" class="form-select">
+          <option value="todas">Todas as Categorias</option>
+        </select>
+      </div>
+
+      <button id="btn-apply-category-filter" class="btn-primary" style="width: 100%;">Aplicar e Começar</button>
+    </div>
+  </div>
+
+  <!-- CONTROLADOR PRINCIPAL ES6 -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
