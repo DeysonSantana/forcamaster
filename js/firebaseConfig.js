@@ -6,14 +6,15 @@
 
 const STORAGE_FIREBASE_CONFIG_KEY = 'forcamaster_firebase_custom_config';
 
-// Configuração padrão do projeto Firebase
-const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDummyKeyForcaMasterDefaultFallback_abc123",
-  authDomain: "forcamaster-pro.firebaseapp.com",
-  projectId: "forcamaster-pro",
-  storageBucket: "forcamaster-pro.appspot.com",
-  messagingSenderId: "102938475610",
-  appId: "1:102938475610:web:abcdef1234567890"
+// Configuração padrão do projeto Firebase (Compartilhada com o ecossistema QuizMaster)
+export const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCqGd42xeen1HGc4PpgBa8sH1nhOi17ylM",
+  authDomain: "quizmaster-f9388.firebaseapp.com",
+  projectId: "quizmaster-f9388",
+  storageBucket: "quizmaster-f9388.firebasestorage.app",
+  messagingSenderId: "169092133424",
+  appId: "1:169092133424:web:019d8ef6e122468864f3f5",
+  measurementId: "G-XEPBYW3SVY"
 };
 
 class FirebaseService {
@@ -62,7 +63,15 @@ class FirebaseService {
     if (typeof localStorage !== 'undefined') {
       try {
         const stored = localStorage.getItem(STORAGE_FIREBASE_CONFIG_KEY);
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // Migração automática: se for placeholder antigo, descarta para usar a nova configuração oficial do QuizMaster
+          if (parsed && (parsed.apiKey?.includes('Dummy') || parsed.projectId === 'forcamaster-pro')) {
+            localStorage.removeItem(STORAGE_FIREBASE_CONFIG_KEY);
+            return DEFAULT_FIREBASE_CONFIG;
+          }
+          return parsed;
+        }
       } catch (e) {
         console.warn('Configuração do Firebase corrompida no storage local', e);
       }

@@ -113,7 +113,18 @@ class AuthManager {
     } catch (err) {
       sound.playWrong();
       console.error('[ForcaMaster] Erro no login com Google:', err);
-      throw err;
+
+      let message = 'Falha ao autenticar com o Google.';
+      if (err.code === 'auth/popup-closed-by-user') {
+        message = 'Login cancelado: a janela de autenticação foi fechada.';
+      } else if (err.code === 'auth/popup-blocked') {
+        message = 'O navegador bloqueou o pop-up do Google. Permita pop-ups nas configurações do navegador para entrar.';
+      } else if (err.code === 'auth/unauthorized-domain') {
+        message = 'Domínio não autorizado nas configurações do Firebase. Adicione o domínio atual em Firebase Console > Authentication > Settings > Authorized domains.';
+      } else if (err.message) {
+        message = err.message;
+      }
+      throw new Error(message);
     }
   }
 
