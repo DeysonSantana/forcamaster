@@ -25,23 +25,27 @@ export class StatsManager {
   }
 
   load() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        return { ...this.getDefaultProfile(), ...parsed };
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          const parsed = JSON.parse(data);
+          return { ...this.getDefaultProfile(), ...parsed };
+        }
+      } catch (e) {
+        console.warn('Falha ao carregar perfil do LocalStorage', e);
       }
-    } catch (e) {
-      console.warn('Falha ao carregar perfil do LocalStorage', e);
     }
     return this.getDefaultProfile();
   }
 
   save() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.profile));
-    } catch (e) {
-      console.error('Falha ao salvar perfil', e);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.profile));
+      } catch (e) {
+        console.error('Falha ao salvar perfil', e);
+      }
     }
   }
 

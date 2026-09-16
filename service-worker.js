@@ -3,7 +3,7 @@
  * Permite funcionamento 100% Offline e instalação nativa em celulares e desktops.
  */
 
-const CACHE_NAME = 'forcamaster-v3';
+const CACHE_NAME = 'forcamaster-v4';
 
 // Assets essenciais com caminhos relativos para compatibilidade com GitHub Pages e subpastas
 const ASSETS_TO_CACHE = [
@@ -20,6 +20,9 @@ const ASSETS_TO_CACHE = [
   './js/statsManager.js',
   './js/shareManager.js',
   './js/aiService.js',
+  './js/firebaseConfig.js',
+  './js/authManager.js',
+  './js/roomManager.js',
   './assets/icons/icon-192x192.png',
   './assets/icons/icon-512x512.png'
 ];
@@ -49,8 +52,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições não-GET e requisições para a API do Gemini
-  if (event.request.method !== 'GET' || event.request.url.includes('generativelanguage.googleapis.com')) {
+  // Ignora requisições não-GET e requisições para APIs externas (Gemini, Firebase, Google CDN)
+  const url = event.request.url;
+  if (
+    event.request.method !== 'GET' ||
+    url.includes('generativelanguage.googleapis.com') ||
+    url.includes('firestore.googleapis.com') ||
+    url.includes('identitytoolkit.googleapis.com') ||
+    url.includes('gstatic.com') ||
+    url.includes('google.com')
+  ) {
     return;
   }
 
@@ -69,7 +80,6 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       }).catch(() => {
-        // Fallback para index.html se for navegação
         if (event.request.mode === 'navigate') {
           return caches.match('./index.html');
         }

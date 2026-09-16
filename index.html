@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <title>ForcaMaster Pro - Jogo da Forca Offline & Desafios</title>
+  <title>ForcaMaster Pro - Jogo da Forca Multiplayer & Desafios</title>
   
   <!-- SEO & PWA Metadados -->
-  <meta name="description" content="O clássico Jogo da Forca com suporte a acentos, áudio sintetizado nativo, 100% offline, gerador por IA e desafios compartilháveis por link e QR Code.">
+  <meta name="description" content="O clássico Jogo da Forca multiplayer em tempo real, 100% offline-first, login com Google Firebase, salas com PIN e IA generativa.">
   <link rel="manifest" href="manifest.json">
   <link rel="shortcut icon" href="assets/icons/icon-192x192.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
@@ -20,7 +20,7 @@
 </head>
 <body>
 
-  <!-- BARRA DE NAVEGAÇÃO SUPERIOR -->
+  <!-- BARRA DE NAVEGAÇÃO SUPERIOR RESPONSIVA -->
   <header class="app-header">
     <div class="brand">
       <span class="brand-icon">🪓</span>
@@ -33,11 +33,25 @@
     <nav class="nav-actions" aria-label="Ações do Sistema">
       <button id="btn-audio-toggle" class="icon-btn" aria-label="Alternar Som" title="Som (Ligado/Desligado)">🔊</button>
       <button id="btn-theme-toggle" class="icon-btn" aria-label="Mudar Tema Visual" title="Trocar Tema">🎨</button>
-      <button id="btn-challenge-toggle" class="icon-btn" aria-label="Inserir Palavra ou Desafiar" title="Inserir Palavra / Desafio">✍️</button>
-      <button id="btn-ai-toggle" class="icon-btn" aria-label="Desafio com IA" title="Gerar com Gemini IA">🤖</button>
-      <button id="btn-stats-toggle" class="icon-btn" aria-label="Ver Estatísticas" title="Estatísticas e Perfil">🏆</button>
+      <button id="btn-room-toggle" class="icon-btn" aria-label="Jogar em Grupo" title="Salas Multiplayer">👥</button>
+      <button id="btn-auth-toggle" class="icon-btn auth-btn" aria-label="Minha Conta Google" title="Conta Google">
+        <span id="auth-btn-icon">G</span>
+      </button>
+      <button id="btn-challenge-toggle" class="icon-btn" aria-label="Inserir Palavra ou Desafiar" title="Palavra Própria">✍️</button>
+      <button id="btn-ai-toggle" class="icon-btn" aria-label="Desafio com IA" title="Gerar com IA">🤖</button>
+      <button id="btn-stats-toggle" class="icon-btn" aria-label="Ver Estatísticas" title="Estatísticas">🏆</button>
     </nav>
   </header>
+
+  <!-- BANNER DE SALA MULTIPLAYER ATIVA (TEMPO REAL) -->
+  <aside id="multiplayer-bar" class="multiplayer-bar" style="display: none;">
+    <div class="room-pill">
+      <span class="pulse-dot"></span>
+      <span>SALA: <strong id="mp-room-pin">000000</strong></span>
+    </div>
+    <div id="mp-players-chips" class="mp-players-chips"></div>
+    <button id="btn-leave-room" class="btn-leave-room" title="Sair da Sala">Sair ✕</button>
+  </aside>
 
   <!-- BARRA DE METADADOS DA PARTIDA -->
   <div class="game-meta-bar">
@@ -97,8 +111,9 @@
     <!-- BARRA DE AÇÕES INFERIORES -->
     <footer class="action-bar">
       <button id="btn-new-word" class="btn-primary">🎲 Nova Palavra</button>
+      <button id="btn-open-rooms" class="btn-secondary">👥 Jogar em Grupo</button>
       <button id="btn-open-custom-word" class="btn-secondary">✍️ Palavra Própria</button>
-      <button id="btn-choose-category" class="btn-secondary">⚙️ Categorias</button>
+      <button id="btn-choose-category" class="btn-secondary">⚙️ Opções</button>
     </footer>
   </main>
 
@@ -106,7 +121,7 @@
        MODAIS DE INTERAÇÃO & DIÁLOGOS
        ======================================================================= -->
 
-  <!-- MODAL 1: FIM DE PARTIDA (VITÓRIA / DERROTA) -->
+  <!-- MODAL 1: FIM DE PARTIDA (VITÓRIA / DERROTA / PÓDIO MULTIPLAYER) -->
   <div id="modal-endgame" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="endgame-title">
     <div class="modal-card">
       <h2 id="endgame-title" class="modal-title">🎉 Parabéns!</h2>
@@ -121,6 +136,12 @@
           <div id="endgame-score" class="stat-value">0</div>
           <div class="stat-label">Pontos da Partida</div>
         </div>
+      </div>
+
+      <!-- PÓDIO MULTIPLAYER (SE PARTIDA EM SALA) -->
+      <div id="multiplayer-podium" style="display: none; margin-bottom: 16px;">
+        <h3 style="font-size: 0.95rem; margin-bottom: 8px; color: var(--color-primary); text-align: center;">🏆 Classificação da Sala</h3>
+        <div id="podium-list" class="podium-list"></div>
       </div>
 
       <div class="action-bar">
@@ -271,6 +292,134 @@
       </div>
 
       <button id="btn-apply-category-filter" class="btn-primary" style="width: 100%;">Aplicar e Começar</button>
+    </div>
+  </div>
+
+  <!-- MODAL 6: AUTENTICAÇÃO COM GOOGLE & CONFIGURAÇÃO FIREBASE -->
+  <div id="modal-auth" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="modal-card">
+      <button class="modal-close-btn" data-close="modal-auth" aria-label="Fechar">✕</button>
+      <h2 id="auth-modal-title" class="modal-title">🔐 Conta & Sincronização</h2>
+      <p class="modal-subtitle">Faça login com sua conta do Google para sincronizar seu perfil e histórico na nuvem.</p>
+
+      <!-- Estado: Desconectado -->
+      <div id="auth-logged-out-state">
+        <div class="connection-status-pill" id="cloud-status-indicator">
+          <span class="status-dot"></span>
+          <span id="cloud-status-text">🟢 Conectado aos Serviços</span>
+        </div>
+
+        <button id="btn-google-signin" class="google-auth-btn">
+          <svg class="google-icon" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Entrar com o Google</span>
+        </button>
+
+        <!-- Acordeão para Configuração Opcional do Firebase -->
+        <details style="margin-top: 16px; font-size: 0.82rem; color: var(--color-text-muted);">
+          <summary style="cursor: pointer; font-weight: 600;">⚙️ Configuração Personalizada do Firebase (Opcional)</summary>
+          <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+            <p>Se desejar usar seu próprio projeto Firebase com Auth e Firestore ativados, cole o JSON de configuração abaixo:</p>
+            <textarea id="input-firebase-config-json" class="form-input" rows="5" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }' style="font-family: monospace; font-size: 0.78rem;"></textarea>
+            <button id="btn-save-custom-firebase" class="btn-secondary" style="width: 100%;">Salvar Configuração</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- Estado: Conectado -->
+      <div id="auth-logged-in-state" style="display: none;">
+        <div class="user-profile-card">
+          <img id="user-profile-avatar" class="user-avatar" src="assets/icons/icon-192x192.png" alt="Avatar">
+          <div>
+            <h3 id="user-profile-name" style="font-size: 1.1rem; color: var(--color-text);">Usuário</h3>
+            <span id="user-profile-email" style="font-size: 0.8rem; color: var(--color-text-muted);">usuario@email.com</span>
+          </div>
+        </div>
+
+        <button id="btn-google-signout" class="btn-secondary" style="width: 100%; margin-top: 16px;">Sair da Conta Google</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: SALAS MULTIPLAYER EM GRUPO (TEMPO REAL) -->
+  <div id="modal-rooms" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="rooms-modal-title">
+    <div class="modal-card">
+      <button class="modal-close-btn" data-close="modal-rooms" aria-label="Fechar">✕</button>
+      <h2 id="rooms-modal-title" class="modal-title">👥 Jogar em Grupo</h2>
+      <p class="modal-subtitle">Jogue ao vivo com seus amigos em tempo real com PIN de 6 dígitos.</p>
+
+      <!-- SELEÇÃO DE ABAS: CRIAR SALA / ENTRAR COM PIN -->
+      <div id="rooms-tabs-view">
+        <div class="tabs-header">
+          <button id="tab-btn-create-room" class="tab-btn active">Criar Sala</button>
+          <button id="tab-btn-join-room" class="tab-btn">Entrar com PIN</button>
+        </div>
+
+        <!-- PAINEL 1: CRIAR SALA -->
+        <div id="tab-panel-create-room" class="tab-panel active">
+          <div class="form-group">
+            <label for="room-category-select">Categoria</label>
+            <select id="room-category-select" class="form-select"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="room-difficulty-select">Dificuldade</label>
+            <select id="room-difficulty-select" class="form-select">
+              <option value="facil">Fácil</option>
+              <option value="medio" selected>Médio</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="room-custom-word-input">Palavra Personalizada (Opcional)</label>
+            <input type="text" id="room-custom-word-input" class="form-input" placeholder="Deixe vazio para palavra aleatória">
+          </div>
+
+          <button id="btn-submit-create-room" class="btn-primary" style="width: 100%;">Gerar Sala e PIN</button>
+        </div>
+
+        <!-- PAINEL 2: ENTRAR COM PIN -->
+        <div id="tab-panel-join-room" class="tab-panel">
+          <div class="form-group">
+            <label for="room-pin-input">PIN da Sala (6 dígitos)</label>
+            <input type="number" id="room-pin-input" class="form-input" placeholder="Ex: 849201" maxlength="6" style="font-size: 1.3rem; text-align: center; letter-spacing: 2px;">
+          </div>
+
+          <div class="form-group">
+            <label for="room-join-nickname">Seu Apelido</label>
+            <input type="text" id="room-join-nickname" class="form-input" placeholder="Como quer ser chamado na sala?" maxlength="16">
+          </div>
+
+          <button id="btn-submit-join-room" class="btn-primary" style="width: 100%;">Entrar na Sala</button>
+        </div>
+      </div>
+
+      <!-- LOBBY AO VIVO DA SALA -->
+      <div id="room-lobby-view" style="display: none;">
+        <div class="pin-display-box">
+          <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted);">PIN da Sala</span>
+          <div id="lobby-pin-number" class="lobby-pin-number">000000</div>
+          <button id="btn-copy-lobby-link" class="btn-secondary" style="padding: 6px 14px; font-size: 0.8rem; margin-top: 6px;">Copiar Link do Grupo</button>
+        </div>
+
+        <div class="qr-container" style="margin: 12px 0;">
+          <canvas id="lobby-qr-canvas" class="qr-canvas"></canvas>
+          <span style="font-size: 0.75rem; color: var(--color-text-muted);">Aponte a câmera do celular para entrar</span>
+        </div>
+
+        <h3 style="font-size: 0.9rem; margin-bottom: 8px; color: var(--color-text);">Jogadores Conectados (<span id="lobby-players-count">1</span>):</h3>
+        <div id="lobby-players-list" class="lobby-players-list"></div>
+
+        <div style="margin-top: 16px;">
+          <button id="btn-host-start-match" class="btn-primary" style="width: 100%; display: none;">🚀 Iniciar Partida</button>
+          <p id="guest-waiting-text" style="font-size: 0.85rem; color: var(--color-text-muted); text-align: center; display: none;">Aguardando o Host iniciar a partida... ⏳</p>
+        </div>
+      </div>
     </div>
   </div>
 
